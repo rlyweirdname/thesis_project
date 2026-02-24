@@ -57,6 +57,10 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float groundRadius = 0.2f;
     [SerializeField] private LayerMask groundMask;
 
+    [Header("Facing")]
+    [SerializeField] private Transform visualRoot;
+    [SerializeField] private bool flipVisualScaleX = true;
+
     private Rigidbody rb;
     private Collider playerCollider;
     private bool isGrounded;
@@ -84,6 +88,7 @@ public class PlayerMovement : MonoBehaviour
     private bool jumpPressedBuffered;
     private bool dashPressedBuffered;
     private bool autoGroundCheckFromCollider;
+    private float facingSign = 1f;
 
     private enum VerticalState
     {
@@ -100,6 +105,8 @@ public class PlayerMovement : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         playerCollider = GetComponent<Collider>();
+        // movement logic expects a dynamic body (not kinematic) so we can write linearVelocity
+        rb.isKinematic = false;
         rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionZ;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
         // disable built-in gravity — we drive it manually per-state for full control
@@ -151,6 +158,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         moveInput = Mathf.Clamp(moveInput, -1f, 1f);
+        UpdateFacing(moveInput);
         // only update dash direction when not actively dashing — locks direction mid-dash
         if (Mathf.Abs(moveInput) > 0.01f && !isDashActive)
             dashDirection = Mathf.Sign(moveInput);
@@ -454,5 +462,17 @@ public class PlayerMovement : MonoBehaviour
 
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireSphere(checkPosition, groundRadius);
+    }
+
+    private void UpdateFacing(float input)
+    {
+        if (!flipVisualScaleX) return;
+        if (Mathf.Abs(input) < 0.01f) return;
+
+        facingSign = Mathf.Sign(input);
+        Transform target = visualRoot != null ? visualRoot : transform;
+        Vector3 s = target.localScale;
+        s.x = Mathf.Abs(s.x) * facingSign;
+        target.localScale = s;
     }
 }
