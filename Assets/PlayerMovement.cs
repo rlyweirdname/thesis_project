@@ -84,11 +84,39 @@ public class PlayerMovement : MonoBehaviour
     private int airDashesRemaining;
 
     private bool usedAirDashThisAirborne;
-    private bool isDashActive;  // locks dash direction mid-dash
+    private bool isDashActive;
     private bool jumpPressedBuffered;
     private bool dashPressedBuffered;
+    private bool attackPressedBuffered;
     private bool autoGroundCheckFromCollider;
     private float facingSign = 1f;
+    private bool isInHitStun = false;
+    private bool isAttacking = false;
+    private float attackCooldownTimer = 0f;
+    private float attackDurationTimer = 0f;
+    [SerializeField] private float attackDuration = 0.15f;
+    [SerializeField] private float attackCooldown = 0.3f;
+    [SerializeField] private PlayerHitbox hitbox;
+    [SerializeField] private float hitboxOffsetX = 1f;
+    [SerializeField] private float hitboxOffsetY = 0f;
+
+    public void SetHitStun(bool stunned)
+    {
+        isInHitStun = stunned;
+        if (stunned)
+        {
+            rb.linearVelocity = Vector3.zero;
+        }
+    }
+
+    public void ForceFlip()
+    {
+        facingSign *= -1f;
+        Transform target = visualRoot != null ? visualRoot : transform;
+        Vector3 s = target.localScale;
+        s.x = Mathf.Abs(s.x) * facingSign;
+        target.localScale = s;
+    }
 
     private enum VerticalState
     {
@@ -120,6 +148,10 @@ public class PlayerMovement : MonoBehaviour
 
         airJumpsRemaining = Mathf.Max(0, extraAirJumps);
         airDashesRemaining = Mathf.Max(0, extraAirDashes);
+
+        // Disable hitbox at start
+        if (hitbox != null)
+            hitbox.gameObject.SetActive(false);
     }
 
     private void Update()
@@ -127,6 +159,8 @@ public class PlayerMovement : MonoBehaviour
         moveInput = 0f;
         bool jumpPressed = false;
         bool dashPressed = false;
+
+        if (isInHitStun) return;
 
         Keyboard kb = Keyboard.current;
         if (kb != null)
@@ -141,8 +175,11 @@ public class PlayerMovement : MonoBehaviour
                        || kb.wKey.wasPressedThisFrame
                        || kb.upArrowKey.wasPressedThisFrame;
 
-            dashPressed = kb.leftShiftKey.wasPressedThisFrame
-                       || kb.rightShiftKey.wasPressedThisFrame;
+        dashPressed = kb.leftShiftKey.wasPressedThisFrame
+                   || kb.rightShiftKey.wasPressedThisFrame;
+
+        if (kb.fKey.wasPressedThisFrame)
+            attackPressedBuffered = true;
         }
 
         Gamepad pad = Gamepad.current;
@@ -155,6 +192,7 @@ public class PlayerMovement : MonoBehaviour
             jumpPressed |= pad.buttonSouth.wasPressedThisFrame;
             dashPressed |= pad.buttonEast.wasPressedThisFrame
                         || pad.rightShoulder.wasPressedThisFrame;
+            attackPressedBuffered |= pad.buttonWest.wasPressedThisFrame;
         }
 
         moveInput = Mathf.Clamp(moveInput, -1f, 1f);
@@ -186,6 +224,7 @@ public class PlayerMovement : MonoBehaviour
             dashPressedBuffered = false;
 
         dashCooldownLeft = Mathf.Max(0f, dashCooldownLeft - Time.deltaTime);
+        attackCooldownTimer = Mathf.Max(0f, attackCooldownTimer - Time.deltaTime);
     }
 
     private void FixedUpdate()
@@ -223,7 +262,39 @@ public class PlayerMovement : MonoBehaviour
         landingRecoveryTimer = Mathf.Max(0f, landingRecoveryTimer - dt);
 
         bool dashBusy = dashStartupTimer > 0f || dashActiveTimer > 0f;
-        bool canControl = landingRecoveryTimer <= 0f && !dashBusy;
+        bool canControl = landingRecoveryTimer <= 0f && !dashBusy && !isAttacking;
+
+        // ── ATTACK ─────────────────────────────────────────────────────────────
+        if (attackPressedBuffered && attackCooldownTimer <= 0f && canControl && !isInHitStun)
+        {
+            isAttacking = true;
+            attackDurationTimer = attackDuration;
+            attackCooldownTimer = attackCooldown;
+            attackPressedBuffered = false;
+            
+            if (hitbox != null)
+            {
+                hitbox.gameObject.SetActive(true);
+                Vector3 pos = transform.position + new Vector3(hitboxOffsetX * facingSign, hitboxOffsetY, 0);
+                hitbox.transform.position = pos;
+            }
+        }
+
+        if (isAttacking)
+        {
+            attackDurationTimer -= dt;
+            if (hitbox != null)
+            {
+                Vector3 pos = transform.position + new Vector3(hitboxOffsetX * facingSign, hitboxOffsetY, 0);
+                hitbox.transform.position = pos;
+            }
+            if (attackDurationTimer <= 0f)
+            {
+                isAttacking = false;
+                if (hitbox != null)
+                    hitbox.gameObject.SetActive(false);
+            }
+        }
 
         // ── JUMP FROM GROUND ───────────────────────────────────────────────
         if (jumpPressedBuffered && isGrounded && verticalState == VerticalState.Grounded && canControl)
@@ -393,7 +464,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         // ── HORIZONTAL MOVEMENT ───────────────────────────────────────────
-        if (canControl && verticalState != VerticalState.PreJump && dashStartupTimer <= 0f && dashActiveTimer <= 0f)
+        if (canControl && !isInHitStun && !isAttacking && verticalState != VerticalState.PreJump && dashStartupTimer <= 0f && dashActiveTimer <= 0f)
         {
             if (isGrounded)
             {
@@ -467,9 +538,22 @@ public class PlayerMovement : MonoBehaviour
     private void UpdateFacing(float input)
     {
         if (!flipVisualScaleX) return;
-        if (Mathf.Abs(input) < 0.01f) return;
+        
+        // Flip based on input, or if moving opposite to facing direction (jumping over enemy)
+        if (Mathf.Abs(input) > 0.01f)
+        {
+            facingSign = Mathf.Sign(input);
+        }
+        else if (rb != null && Mathf.Abs(rb.linearVelocity.x) > 1f)
+        {
+            // When airborne and moving, face the movement direction (handles jumping over enemy)
+            float velSign = Mathf.Sign(rb.linearVelocity.x);
+            if (velSign != 0 && velSign != facingSign)
+            {
+                facingSign = velSign;
+            }
+        }
 
-        facingSign = Mathf.Sign(input);
         Transform target = visualRoot != null ? visualRoot : transform;
         Vector3 s = target.localScale;
         s.x = Mathf.Abs(s.x) * facingSign;

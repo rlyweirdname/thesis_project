@@ -394,7 +394,7 @@ GameObject:
   - component: {fileID: 520158229}
   - component: {fileID: 520158230}
   - component: {fileID: 520158231}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: EnemyHitbox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -409,12 +409,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 520158228}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 574098127}
+  m_Father: {fileID: 1687766536}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!136 &520158230
 CapsuleCollider:
@@ -451,6 +451,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d04eb29bfbd51490d95325467bf5aaca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  hitData:
+    damage: 8
+    hitType: 0
+    causesStagger: 1
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 64
+  logHits: 1
+  gizmoColor: {r: 0.2, g: 0.7, b: 1, a: 0.25}
+  requireManualReset: 0
 --- !u!1 &574098123
 GameObject:
   m_ObjectHideFlags: 0
@@ -565,7 +575,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 520158229}
   - {fileID: 1687766536}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -592,10 +601,10 @@ Rigidbody:
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
   m_UseGravity: 1
-  m_IsKinematic: 0
+  m_IsKinematic: 1
   m_Interpolate: 0
   m_Constraints: 120
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
 --- !u!114 &574098129
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -662,6 +671,8 @@ MonoBehaviour:
   groundMask:
     serializedVersion: 2
     m_Bits: 0
+  staggerDuration: 0.6
+  state: 0
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -834,7 +845,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1140607361}
   - component: {fileID: 1140607362}
-  m_Layer: 0
+  - component: {fileID: 1140607363}
+  m_Layer: 6
   m_Name: PlayerHurtbox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -853,7 +865,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 2096545293}
   m_Father: {fileID: 1340808488}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1140607362
@@ -868,6 +881,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2a3e781ee1bcf4fc4adc43add1c771ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+--- !u!136 &1140607363
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1140607360}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 1
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1340808482
 GameObject:
   m_ObjectHideFlags: 0
@@ -879,9 +915,11 @@ GameObject:
   - component: {fileID: 1340808488}
   - component: {fileID: 1340808487}
   - component: {fileID: 1340808486}
-  - component: {fileID: 1340808490}
   - component: {fileID: 1340808489}
   - component: {fileID: 1340808483}
+  - component: {fileID: 1340808491}
+  - component: {fileID: 1340808490}
+  - component: {fileID: 1340808492}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -955,6 +993,8 @@ MonoBehaviour:
   groundMask:
     serializedVersion: 2
     m_Bits: 0
+  visualRoot: {fileID: 0}
+  flipVisualScaleX: 1
 --- !u!23 &1340808486
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -1025,7 +1065,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 2096545293}
   - {fileID: 1140607361}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1052,10 +1091,10 @@ Rigidbody:
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
   m_UseGravity: 1
-  m_IsKinematic: 0
+  m_IsKinematic: 1
   m_Interpolate: 0
   m_Constraints: 104
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
 --- !u!136 &1340808490
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1079,6 +1118,33 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1340808491
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1340808482}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb56916978e7a4c129a2f8bd7385a161, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Combat.ComboCounter
+  value: 0
+--- !u!114 &1340808492
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1340808482}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b514413cf440462fa314c540ed0e05a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerCombatant
+  maxHealth: 100
+  currentHealth: 100
 --- !u!1 &1687766535
 GameObject:
   m_ObjectHideFlags: 0
@@ -1089,7 +1155,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1687766536}
   - component: {fileID: 1687766537}
-  m_Layer: 3
+  - component: {fileID: 1687766538}
+  m_Layer: 7
   m_Name: EnemyHurtbox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1108,7 +1175,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 520158229}
   m_Father: {fileID: 574098127}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1687766537
@@ -1123,6 +1191,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eddf7e36a3b504944883b31eb10e15da, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+--- !u!136 &1687766538
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1687766535}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 1
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &2096545292
 GameObject:
   m_ObjectHideFlags: 0
@@ -1134,7 +1225,7 @@ GameObject:
   - component: {fileID: 2096545293}
   - component: {fileID: 2096545294}
   - component: {fileID: 2096545295}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: PlayerHitbox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1149,12 +1240,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2096545292}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1340808488}
+  m_Father: {fileID: 1140607361}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!136 &2096545294
 CapsuleCollider:
@@ -1191,6 +1282,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 80e72501cc6004ec8b24f43acf3ef21a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  hitData:
+    damage: 10
+    hitType: 0
+    causesStagger: 1
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 128
+  logHits: 1
+  gizmoColor: {r: 1, g: 0.4, b: 0.1, a: 0.25}
+  requireManualReset: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

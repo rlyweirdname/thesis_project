@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Combat;
 using UnityEngine;
 
@@ -13,16 +14,42 @@ public class PlayerHitbox : MonoBehaviour
     [SerializeField] private Color gizmoColor = new Color(1f, 0.4f, 0.1f, 0.25f);
     [Tooltip("Clear hit memory each swing when you toggle only the collider via Animation Event.")]
     [SerializeField] private bool requireManualReset;
+    [Tooltip("Time before same target can be hit again. 0 = once per activation only.")]
+    [SerializeField] private float hitCooldown = 0.2f;
+    [Header("Hit Effects")]
+    [SerializeField] private float screenShakeAmount = 0.1f;
+    [SerializeField] private float screenShakeDuration = 0.1f;
 
     private readonly HashSet<Collider> hitsThisActivation = new HashSet<Collider>();
+    private readonly Dictionary<Collider, float> hitCooldownTimers = new Dictionary<Collider, float>();
     private Collider col;
     private ComboCounter combo;
+    private Camera mainCamera;
+    private Vector3 originalCamPos;
 
     private void Awake()
     {
         col = GetComponent<Collider>();
         col.isTrigger = true;
         combo = GetComponentInParent<ComboCounter>();
+        mainCamera = Camera.main;
+        if (mainCamera != null)
+            originalCamPos = mainCamera.transform.position;
+    }
+
+    private void Update()
+    {
+        float dt = Time.deltaTime;
+        var keys = new List<Collider>(hitCooldownTimers.Keys);
+        foreach (var key in keys)
+        {
+            hitCooldownTimers[key] -= dt;
+            if (hitCooldownTimers[key] <= 0)
+            {
+                hitCooldownTimers.Remove(key);
+                hitsThisActivation.Remove(key);
+            }
+        }
     }
 
     private void OnEnable()
@@ -44,6 +71,7 @@ public class PlayerHitbox : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (!enabled || col == null) return;
+        if (hitCooldownTimers.TryGetValue(other, out float remaining) && remaining > 0) return;
         if (hitsThisActivation.Contains(other)) return;
         if (targetLayers.value != 0 && ((1 << other.gameObject.layer) & targetLayers.value) == 0) return;
 
@@ -55,7 +83,11 @@ public class PlayerHitbox : MonoBehaviour
 
         receiver.ReceiveHit(hitData, transform.root.gameObject);
         hitsThisActivation.Add(other);
+        hitCooldownTimers[other] = hitCooldown;
         combo?.Increment();
+
+        if (screenShakeAmount > 0f)
+            StartCoroutine(ScreenShake());
 
         if (logHits)
             Debug.Log($"PlayerHitbox hit {other.name} with {hitData.hitType} for {hitData.damage} dmg", this);
@@ -82,5 +114,20 @@ public class PlayerHitbox : MonoBehaviour
             // approximate with wire cube using bounds
             Gizmos.DrawWireCube(capsule.center, new Vector3(capsule.radius * 2f, capsule.height, capsule.radius * 2f));
         }
+    }
+
+    private System.Collections.IEnumerator ScreenShake()
+    {
+        if (mainCamera == null) yield break;
+        
+        float elapsed = 0f;
+        while (elapsed < screenShakeDuration)
+        {
+            Vector3 offset = Random.insideUnitSphere * screenShakeAmount;
+            mainCamera.transform.position = originalCamPos + offset;
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        mainCamera.transform.position = originalCamPos;
     }
 }
